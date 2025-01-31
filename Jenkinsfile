@@ -1,56 +1,38 @@
 pipeline {
-    agent { label 'Slave1' } // Assure-toi que ce pipeline s'exécute uniquement sur Slave1
+    agent { label 'Slave1' }  // Utilise le Slave1 pour l'exécution du pipeline
 
     stages {
         stage('Setup Python Environment') {
             steps {
                 script {
-                    // Créer un environnement virtuel Python
-                    bat 'python -m venv venv'
-                    // Installer les dépendances Python depuis requirements.txt
-                    bat 'venv\\Scripts\\pip install -r requirements.txt'
+                    // Assurez-vous que l'environnement virtuel est installé sur Slave1
+                    if (!fileExists('venv')) {
+                        sh 'python -m venv venv'  // Crée un environnement virtuel si nécessaire
+                    }
+                    sh 'venv/Scripts/pip install -r requirements.txt'  // Installe les dépendances
                 }
             }
         }
 
         stage('Format Code with Black') {
             steps {
-                // Exécuter Black et rediriger les logs vers un fichier local sur Slave1
-                bat 'venv\\Scripts\\black --diff --verbose . > C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log'
+                // Exécute Black sur tous les fichiers Python du projet et modifie les fichiers en place
+                bat 'venv\\Scripts\\black . > black_formatting.log'  // Formate les fichiers Python
             }
         }
 
-        stage('Run Tests') {
+        stage('Archive Formatted Code') {
             steps {
-                // Exécuter les tests avec pytest et générer un fichier XML pour les résultats
-                bat 'venv\\Scripts\\pytest --junitxml=C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml'
-            }
-        }
-
-        stage('Archive Test Results') {
-            steps {
-                // Archive le fichier XML des résultats de test
-                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml', allowEmptyArchive: true
-            }
-        }
-
-        stage('Archive Black Logs') {
-            steps {
-                // Archive les logs de Black
-                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log', allowEmptyArchive: true
+                // Archive les fichiers Python formatés après l'exécution de Black
+                archiveArtifacts artifacts: '**/*.py', allowEmptyArchive: true
             }
         }
     }
 
     post {
         always {
+            // Si nécessaire, nettoyez les fichiers ou faites d'autres actions après chaque exécution
             echo 'Pipeline terminé'
-        }
-        success {
-            echo 'Le pipeline a réussi avec succès.'
-        }
-        failure {
-            echo 'Le pipeline a échoué.'
         }
     }
 }
