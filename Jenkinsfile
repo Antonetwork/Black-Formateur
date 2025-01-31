@@ -27,8 +27,11 @@ pipeline {
         stage('Format Code with Black') {
             steps {
                 script {
-                    // Formater le code Python avec Black et stocker les logs dans un fichier spécifique
-                    bat '%PYTHON_ENV%\\Scripts\\black . > %BLACK_LOG_DIR%\\black_formatting.log 2>&1'
+                    // Activer l'environnement virtuel et exécuter Black
+                    bat '''
+                    call %PYTHON_ENV%\\Scripts\\activate.bat
+                    %PYTHON_ENV%\\Scripts\\black . > %BLACK_LOG_DIR%\\black_formatting.log 2>&1
+                    '''
                     // `2>&1` redirige les erreurs vers le même fichier de log
                 }
             }
@@ -37,8 +40,11 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Exécuter pytest et générer un rapport XML dans le répertoire de résultats
-                    bat '%PYTHON_ENV%\\Scripts\\pytest --maxfail=1 --disable-warnings -q --junitxml=%TEST_RESULTS_DIR%\\test-results.xml'
+                    // Activer l'environnement virtuel et exécuter pytest
+                    bat '''
+                    call %PYTHON_ENV%\\Scripts\\activate.bat
+                    %PYTHON_ENV%\\Scripts\\pytest --maxfail=1 --disable-warnings -q --junitxml=%TEST_RESULTS_DIR%\\test-results.xml
+                    '''
                 }
             }
         }
