@@ -1,40 +1,64 @@
 pipeline {
-    agent { label 'Slave1' }  // Assure-toi que ce pipeline s'exécute uniquement sur Slave1
-
+    agent { label 'Slave1' }
+    environment {
+        VENV_DIR = 'venv'
+        REQUIREMENTS_FILE = 'requirements.txt'
+    }
     stages {
+        stage('Checkout SCM') {
+            steps {
+                checkout scm
+            }
+        }
+        
         stage('Setup Python Environment') {
             steps {
-                bat 'python -m venv venv'
-                bat 'venv\\Scripts\\pip install -r requirements.txt'
+                script {
+                    // Créer un environnement virtuel
+                    bat 'python -m venv %VENV_DIR%'
+                    
+                    // Installer les dépendances
+                    bat '"%VENV_DIR%\\Scripts\\pip" install -r %REQUIREMENTS_FILE%'
+                }
             }
         }
 
         stage('Format Code with Black') {
             steps {
-                // Rediriger les logs de Black vers un répertoire local sur Slave1
-                bat 'venv\\Scripts\\black --diff --verbose . > C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log'
+                script {
+                    // Exécuter Black pour formater le code
+                    bat '"%VENV_DIR%\\Scripts\\black" .'
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                // Ajouter l'option --junitxml pour générer les résultats des tests localement sur Slave1
-                bat 'venv\\Scripts\\pytest --junitxml=C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml'
-            }
-        }
-
-        stage('Archive Test Results') {
-            steps {
-                // Archive les résultats des tests localement sur Slave1, mais dans un répertoire sous 'output'
-                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml', allowEmptyArchive: true
+                script {
+                    // Exécuter les tests
+                    bat '"%VENV_DIR%\\Scripts\\pytest"'
+                }
             }
         }
 
         stage('Archive Black Logs') {
             steps {
-                // Archive les logs de Black localement sur Slave1
-                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log', allowEmptyArchive: true
+                script {
+                    // Si tu veux archiver les logs de Black, tu peux le faire ici
+                    // bat 'copy black_formatting.log some_destination_path' (à adapter)
+                }
             }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline terminé'
+        }
+        success {
+            echo 'Le pipeline a réussi avec succès.'
+        }
+        failure {
+            echo 'Le pipeline a échoué.'
         }
     }
 }
