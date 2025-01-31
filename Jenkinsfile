@@ -1,70 +1,43 @@
 pipeline {
-    agent { label 'Slave1' } // Exécuter sur Slave1
-    environment {
-        VENV_DIR = 'venv' // Dossier pour l'environnement virtuel
-        REQUIREMENTS_FILE = 'requirements.txt' // Fichier des dépendances
-    }
+    agent any
+    agent { label 'Slave1' }  // Assure-toi que ce pipeline s'exécute uniquement sur Slave1
+
     stages {
-        // Étape pour récupérer le code source depuis Git
-        stage('Checkout SCM') {
-            steps {
-                checkout scm
-            }
-        }
-
-        // Étape pour configurer l'environnement Python
         stage('Setup Python Environment') {
-            steps {
-                script {
-                    // Créer l'environnement virtuel Python
-                    bat 'python -m venv %VENV_DIR%'
-                    
-                    // Installer les dépendances Python depuis le fichier requirements.txt
-                    bat '"%VENV_DIR%\\Scripts\\pip" install -r %REQUIREMENTS_FILE%'
-                }
-            }
-        }
+@@ -11,28 +11,29 @@ pipeline {
 
-        // Étape pour formater le code avec Black
         stage('Format Code with Black') {
             steps {
-                script {
-                    // Exécuter Black pour formater le code
-                    bat '"%VENV_DIR%\\Scripts\\black" .'
-                }
+                bat 'venv\\Scripts\\black --diff --verbose . > black_formatting.log'
+                // Rediriger les logs de Black vers un répertoire local sur Slave1
+                bat 'venv\\Scripts\\black --diff --verbose . > C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log'
             }
         }
 
-        // Étape pour exécuter les tests avec pytest
         stage('Run Tests') {
             steps {
-                script {
-                    // Exécuter les tests avec pytest
-                    bat '"%VENV_DIR%\\Scripts\\pytest"'
-                }
+                // Ajoute l'option --junitxml pour générer le fichier XML des résultats
+                bat 'venv\\Scripts\\pytest --junitxml=results/test-results.xml'
+                // Ajouter l'option --junitxml pour générer les résultats des tests localement sur Slave1
+                bat 'venv\\Scripts\\pytest --junitxml=C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml'
             }
         }
 
-        // Étape pour archiver les logs de Black (si nécessaire)
+        stage('Archive Test Results') {
+            steps {
+                // Archive le fichier XML des résultats de test
+                archiveArtifacts artifacts: '**/test-results.xml', allowEmptyArchive: true
+                // Archive les résultats des tests localement sur Slave1, mais dans un répertoire sous 'output'
+                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\results\\test-results.xml', allowEmptyArchive: true
+            }
+        }
+
         stage('Archive Black Logs') {
             steps {
-                script {
-                    // Exemple pour archiver les logs de Black
-                    // bat 'copy black_formatting.log some_destination_path'
-                }
+                // Archive les logs de Black
+                archiveArtifacts artifacts: '**/black_formatting.log', allowEmptyArchive: true
+                // Archive les logs de Black localement sur Slave1
+                archiveArtifacts artifacts: 'C:\\jenkins\\workspace\\Black formateur\\output\\black_formatting.log', allowEmptyArchive: true
             }
         }
     }
-    post {
-        // Actions à réaliser après le pipeline, quelle que soit l'issue
-        always {
-            echo 'Pipeline terminé'
-        }
-        success {
-            echo 'Le pipeline a réussi avec succès.'
-        }
-        failure {
-            echo 'Le pipeline a échoué.'
-        }
-    }
-}
