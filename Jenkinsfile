@@ -2,28 +2,34 @@ pipeline {
     agent { label 'Slave1' }  // Utilise le Slave1 pour l'exécution du pipeline
 
     stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Setup Python Environment') {
             steps {
                 script {
-                    // Assurez-vous que l'environnement virtuel est installé sur Slave1
+                    // Crée l'environnement virtuel si nécessaire
                     if (!fileExists('venv')) {
-                        sh 'python -m venv venv'  // Crée un environnement virtuel si nécessaire
+                        bat 'python -m venv venv'  // Crée un environnement virtuel
                     }
-                    sh 'venv/Scripts/pip install -r requirements.txt'  // Installe les dépendances
+                    bat 'venv\\Scripts\\pip install -r requirements.txt'  // Installe les dépendances
                 }
             }
         }
 
         stage('Format Code with Black') {
             steps {
-                // Exécute Black sur tous les fichiers Python du projet et modifie les fichiers en place
-                bat 'venv\\Scripts\\black . > black_formatting.log'  // Formate les fichiers Python
+                // Exécute Black pour formater le code Python
+                bat 'venv\\Scripts\\black . > black_formatting.log'  // Utilisation de `bat` pour Windows
             }
         }
 
         stage('Archive Formatted Code') {
             steps {
-                // Archive les fichiers Python formatés après l'exécution de Black
+                // Archive les fichiers Python formatés
                 archiveArtifacts artifacts: '**/*.py', allowEmptyArchive: true
             }
         }
@@ -31,7 +37,7 @@ pipeline {
 
     post {
         always {
-            // Si nécessaire, nettoyez les fichiers ou faites d'autres actions après chaque exécution
+            // Actions à effectuer après chaque exécution du pipeline
             echo 'Pipeline terminé'
         }
     }
