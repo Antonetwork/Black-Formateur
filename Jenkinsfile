@@ -18,8 +18,8 @@ pipeline {
             steps {
                 script {
                     // Créer et activer un environnement virtuel Python
-                    bat 'python -m venv %PYTHON_ENV%'  // Crée un venv
-                    bat '%PYTHON_ENV%\\Scripts\\pip install -r requirements.txt'  // Installe les dépendances, y compris Black
+                    bat 'python -m venv "%PYTHON_ENV%"'  // Crée un venv avec des guillemets
+                    bat '"%PYTHON_ENV%\\Scripts\\pip" install -r requirements.txt'  // Installe les dépendances, y compris Black
                 }
             }
         }
@@ -27,10 +27,10 @@ pipeline {
         stage('Format Code with Black') {
             steps {
                 script {
-                    // Activer l'environnement virtuel et exécuter Black
+                    // Activer l'environnement virtuel et exécuter Black avec des guillemets autour du chemin
                     bat '''
-                    call %PYTHON_ENV%\\Scripts\\activate.bat
-                    %PYTHON_ENV%\\Scripts\\black . > %BLACK_LOG_DIR%\\black_formatting.log 2>&1
+                    call "%PYTHON_ENV%\\Scripts\\activate.bat"
+                    "%PYTHON_ENV%\\Scripts\\black" . > "%BLACK_LOG_DIR%\\black_formatting.log" 2>&1
                     '''
                     // `2>&1` redirige les erreurs vers le même fichier de log
                 }
@@ -40,10 +40,10 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Activer l'environnement virtuel et exécuter pytest
+                    // Activer l'environnement virtuel et exécuter pytest avec des guillemets autour du chemin
                     bat '''
-                    call %PYTHON_ENV%\\Scripts\\activate.bat
-                    %PYTHON_ENV%\\Scripts\\pytest --maxfail=1 --disable-warnings -q --junitxml=%TEST_RESULTS_DIR%\\test-results.xml
+                    call "%PYTHON_ENV%\\Scripts\\activate.bat"
+                    "%PYTHON_ENV%\\Scripts\\pytest" --maxfail=1 --disable-warnings -q --junitxml="%TEST_RESULTS_DIR%\\test-results.xml"
                     '''
                 }
             }
