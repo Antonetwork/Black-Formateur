@@ -10,7 +10,7 @@ pipeline {
                 checkout scm
             }
         }
-        
+
         stage('Setup Python Environment') {
             steps {
                 script {
